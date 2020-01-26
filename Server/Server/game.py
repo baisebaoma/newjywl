@@ -2,19 +2,42 @@ import random
 
 
 class Queue:
-    queue = list()
+    '''
+    提供4个函数:
+    print: 打印当前队列
+    push: 向末尾添加项
+    pop: 从最前提取一个项，如果空则返回 False
+    '''
+
+    __queue = list()
+
+    def is_empty(self):
+        if not self.__queue:
+            return True
+        else:
+            return False
 
     def print(self):
-        print(self.queue)
+        print(self.__queue)
 
     def push(self, T):
-        self.queue.append(T)
+        self.__queue.append(T)
 
     def pop(self):
-        try:
-            return self.queue.pop(0)
-        except KeyError:
+        if self.is_empty():
             return False
+        else:
+            return self.__queue.pop(0)
+
+
+class Player:
+    ID = None
+    gold = 0
+    shown_cards = list()
+    hidden_cards = list()
+
+    def __init__(self, ID):
+        self.ID = ID
 
 
 class Event:
@@ -187,6 +210,12 @@ class Event:
                 "target": self.player2.ID
             }
 
+    class Skill:
+        class woyunla:
+            pass
+
+
+
 
 class EventDealer:
     event_queue = Queue()
@@ -197,12 +226,7 @@ class EventDealer:
     def deal(self):
         event = self.event_queue.pop()
         event.do()
-        event.send()
-
-
-
-
-
+        print(event.send())  # 暂时是这样
 
 
 
@@ -1008,3 +1032,13 @@ class Game:
         在选择英雄时输入数字有时会变成聊天
     '''
 
+
+if __name__ == "__main__":
+    ED = EventDealer(game="temp")
+    ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
+    ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
+    ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
+    ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
+    ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
+    for _ in range(3):
+        ED.deal()

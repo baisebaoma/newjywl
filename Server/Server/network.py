@@ -2,6 +2,11 @@ import socket
 import threading
 import json
 
+class 基本信息:
+    版本 = "2.0 beta"
+    新版本地址 = "lol.qq.com"
+    更新说明 = "2.0 beta 版优化客户端操作，全新世界观 & 更加平衡的卡组"
+
 
 def 接收消息(连接):
     # 输入连接，输出一个含有所有obj的list
