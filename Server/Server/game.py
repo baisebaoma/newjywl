@@ -1,5 +1,6 @@
 import random
-
+import threading
+import time
 
 class Queue:
     '''
@@ -12,7 +13,7 @@ class Queue:
     __queue = list()
 
     def is_empty(self):
-        if not self.__queue:
+        if self.__queue:
             return True
         else:
             return False
@@ -33,7 +34,7 @@ class Queue:
 class Player:
     ID = None
     gold = 0
-    shown_cards = list()
+    shown_cards = list() 
     hidden_cards = list()
 
     def __init__(self, ID):
@@ -225,8 +226,13 @@ class EventDealer:
 
     def deal(self):
         event = self.event_queue.pop()
-        event.do()
-        print(event.send())  # 暂时是这样
+        if event is not False:
+            event.do()
+            print(event.send())  # 暂时是这样
+
+    def start(self):
+        while self.event_queue:
+            self.deal()
 
 
 
@@ -1035,10 +1041,14 @@ class Game:
 
 if __name__ == "__main__":
     ED = EventDealer(game="temp")
+    thread = threading.Thread(target=ED.start, args=(), daemon=False)
+
     ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
     ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
     ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
     ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
     ED.event_queue.push(Event.GetGold(Player("nihao"), -2))
-    for _ in range(3):
-        ED.deal()
+    # time.sleep(1)
+    thread.start()
+    # for _ in range(3):
+    #     ED.deal()
