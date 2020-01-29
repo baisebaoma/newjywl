@@ -10,6 +10,7 @@ class Queue:
     is_empty: 若是空 返回 alse 否则返回 True
     print: 打印当前队列
     push: 向末尾添加项
+    push_insert: 在a项之后、b项之前添加项
     pop: 从最前提取一个项，如果空则返回 False
     """
     def __init__(self):
@@ -35,70 +36,27 @@ class Queue:
 
 
 class Player:
-    def __init__(self, ID):
-        self.ID = ID
+    def __init__(self, player_network):
+        self.ID = player_network.ID
         self.gold = 0
         self.shown_cards = list()
         self.hidden_cards = list()
         self.buff = {}
-        self.champion = None
 
     def turn(self):
         # 回合开始（亮英雄）
         ED.event_queue.push(Event.Turn.Start(source=self))
         # 获取阶段（有的英雄可以在这里使用技能）
         ED.event_queue.push(Event.Turn.Get(source=self))
-        i = self.ask()
-        if i == "GetCard":
-            ED.event_queue.push(Event.GetCard(player=self, amount=2))  # 简化，直接摸两张牌，不需要选择
-        elif i == "GetGold":
-            ED.event_queue.push(Event.GetGold(player=self, amount=2))
-
         # 出牌阶段（使用技能）
         ED.event_queue.push(Event.Turn.Main(source=self))
-        i = self.ask()
-
         # 回合结束（此时进行判定）
         ED.event_queue.push(Event.Turn.End(source=self))
 
 
 class Event:
-    class __Event:
-        def cancel(self):
-            def cancel():
-                print("这个事件已被取消")
 
-            self.do = cancel
-
-    class GetChampion(__Event):
-        def __init__(self, player, champion):
-            # 输入：玩家 要拿取的卡牌数量
-            self.player = player
-            self.champion = champion
-
-        def do(self):
-            self.player.champion = self.champion
-
-        def send(self, target="broadcast"):
-            if target == "broadcast":
-                return {
-                    "event": "GetChampion",
-                    "source": self.player.ID,
-                    "card": None,
-                    "amount": None,
-                    "target": self.champion.name
-                }
-            # 最好在发送的时候也包装一下？
-            elif target == "private":
-                return {
-                    "event": "GetChampion",
-                    "source": self.player.ID,
-                    "card": None,
-                    "amount": None,
-                    "target": self.champion.name
-                }
-
-    class GetCard(__Event):
+    class GetCard:
         card_got = None
 
         def __init__(self, player, amount):
@@ -107,7 +65,8 @@ class Event:
             self.amount = amount
 
         def do(self):
-            print(f"{self.player.ID} 拿了 {self.amount} 张牌！")
+            self.card_got = self.player.get_card(self.amount)  # ???????? 这个绝对实现不了 以后再改
+            # tuple
 
         def send(self, target="broadcast"):
             if target == "broadcast":
@@ -128,7 +87,7 @@ class Event:
                     "target": None
                 }
 
-    class TransferHiddenCard(__Event):
+    class TransferHiddenCard:
         def __init__(self, player1, player2, card):
             # 输入：玩家1 玩家2 卡牌
             self.player1 = player1
@@ -157,7 +116,7 @@ class Event:
                     "target": self.player2.ID
                 }
 
-    class LostHiddenCard(__Event):
+    class LostHiddenCard:
         def __init__(self, player, card):
             # is card tuple?
             # 输入：玩家 卡牌
@@ -178,7 +137,7 @@ class Event:
                 "target": None
             }
 
-    class TransferShownCard(__Event):
+    class TransferShownCard:
         def __init__(self, player1, player2, card):
             # is card tuple?
             # no because 1 card 1 time
@@ -202,7 +161,7 @@ class Event:
                 "target": self.player2.ID
             }
 
-    class LostShownCard(__Event):
+    class LostShownCard:
         def __init__(self, player, card):
             # 输入：玩家 卡牌
             self.player = player
@@ -222,7 +181,7 @@ class Event:
                 "target": None
             }
 
-    class GetGold(__Event):
+    class GetGold:
         # 注意：包括负数
         def __init__(self, player, amount):
             # 输入：玩家 数量
@@ -243,7 +202,7 @@ class Event:
                 "target": None
             }
 
-    class TransferGold(__Event):
+    class TransferGold:
         def __init__(self, player1, player2, amount):
             # 输入：玩家 数量
             self.player1 = player1
@@ -265,7 +224,7 @@ class Event:
                 "target": self.player2.ID
             }
 
-    class Skill(__Event):
+    class Skill:
         class woyunla:
             pass
 
@@ -290,59 +249,24 @@ class Event:
             pass
 
 
-class EventListener:
-    pass
-
-
-class JinZhiJiaQianListener(EventListener):
-    interest = (Event.GetGold, )
-
-    def activate(self, event):
-        if "禁止加钱" in event.player.shown_cards:
-            print(f'{event.player.ID} 装备了 "禁止加钱"，无法加钱！')
-            event.cancel()
-        return event
-            # event.cancel()
-
-
-class KilledListener(EventListener):
-    interest = (Event.Turn.Start, )
-
-    def activate(self, event):
-        if event.player.killed:
-            print(f'{event.player.ID} 已经被杀，无法进行下一个回合！')
-            event.cancel()
-        return event
-            # event.cancel()
-
-
 class EventDealer:
 
     def __init__(self, game, network=""):
         self.game = game  # 将？？传进来
         self.network = network
         self.event_queue = Queue()
-        self.event_listeners = list()
-
-    def ask(self, event):
-        for event_listener in self.event_listeners:
-            if event.__class__ in event_listener.interest:
-                event = event_listener.activate(event)
-            return event
 
     def deal(self):
         event = self.event_queue.pop()
         if event is not False:  # 因为 event 可能是 Event 也可能是 Bool，所以不能写 if not event
-            print(f'正在处理事件 {event.send()}')
-            event = self.ask(event)
             event.do()
             # self.game.broadcast(event.send())  # 暂时是这样
-            # print(event.send())
+            print(event.send())
         else:
-            print("没有事件")
+            print("no event currently")
 
     def start(self):
-        thread = threading.Thread(target=self.__thread, args=(), daemon=False)
+        thread = threading.Thread(target=self.__thread, args=(), daemon=True)
         thread.start()
 
     def __thread(self):
@@ -351,52 +275,24 @@ class EventDealer:
             time.sleep(1)
 
 
-class Champion:
-    class __Champion:
-        pass
-
-    class XJB(__Champion):
-        name = '熊俊博'
-
-        def Skill(self, ):
-            pass
-
-    class ZXX(__Champion):
-        name = '熊俊博'
-
-        def Skill(self, ):
-            pass
-
-    class PZK(__Champion):
-        name = '熊俊博'
-
-        def Skill(self, ):
-            pass
-
-
 class GameLogic:
-    # cdl = card list, 牌堆
     end = False
-
-    def __init__(self):
-        self.cdl = list()
-        self.players = list()
-        self.champion_pool = [Champion.XJB(), Champion.PZK(), Champion.ZXX()]
-        self.ED = None
+    cdl = list()
+    # cdl = card list, 牌堆
 
     def round(self):
-        self.ED.event_queue.push(Event.Round.Start)
-        self.ED.event_queue.push(Event.Round.ChooseChar)
-        self.ED.event_queue.push(Event.Round.End)
+        ED.event_queue.push(Event.Round.Start)
+        ED.event_queue.push(Event.Round.ChooseChar)
+        ED.event_queue.push(Event.Round.End)
+
 
     def start(self):
         print("GameLogic Started")
-        self.cdl = ["禁止加钱", "禁止套娃", "禁止摸牌", "无尽之刃"]
-        for player in self.players:
-            self.ED.event_queue.push(Event.GetChampion(player=player, champion=self.champion_pool.pop(0)))
-            self.ED.event_queue.push(Event.GetCard(player=player, amount=4))
-            self.ED.event_queue.push(Event.GetGold(player=player, amount=2))
-
+        # player_number = 8  # 玩家人数
+        # 作弊牌堆如下
+        self.cdl = [22, 22, 22, 22, 22, 22, 22]
+        champion_pool = list(range(0, 1))  # 英雄池(从0开始)
+        self.turn_controller()
 
 
 class Game:
@@ -404,7 +300,6 @@ class Game:
         self.GL = GameLogic()
         # self.NW = Network()
         self.ED = EventDealer(game=self.GL, network="NW")
-        self.GL.ED = self.ED
 
     def start(self):
         self.ED.start()
@@ -412,11 +307,13 @@ class Game:
 
 
 if __name__ == "__main__":
-    g = Game()
-    xjb = Player("xjb")
-    xjb.shown_cards.append("禁止加钱")
-    g.GL.players.append(xjb)
-    g.ED.event_queue.push(Event.GetGold(player=xjb, amount=2))
-    g.ED.event_listeners.append(JinZhiJiaQianListener())
-    g.ED.event_listeners.append(KilledListener)
-    g.start()
+    ED = EventDealer(game=GameLogic())
+    thread = threading.Thread(target=ED.start, args=(), daemon=False)
+    thread.start()
+    for _ in range(5):
+        ED.event_queue.push(Event.GetGold(player=Player("nihao"), amount=2))
+        time.sleep(random.randint(1, 5))
+    # time.sleep(1)
+
+    # for _ in range(3):
+    #     ED.deal()

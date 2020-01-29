@@ -1,12 +1,11 @@
 import socket
-import threading
 import json
+import threading
+import random
 
 
-class 基本信息:
-    版本 = "2.0 beta"
-    新版本地址 = "lol.qq.com"
-    更新说明 = "2.0 beta 版优化客户端操作，全新世界观 & 更加平衡的卡组"
+def send(connection, **dictionary):
+    connection.send(json.dumps(dictionary).encode())
 
 
 def receive_message(connection):
@@ -58,30 +57,16 @@ def receive_message(connection):
 def user_thread(connection):
     message_queue = receive_message(connection)
     # 检查版本号
-    if message_queue[0]['target'] != 基本信息.版本:  # 用【target】存储版本号
-        print(f"尝试登录的用户（{connection.getpeername()}）的版本过低。已发送提示更新版本的message。")
-        connection.send(json.dumps(
-            {
-                'source': 'server',
-                'event': 'VersionNotMatch',
-                'target': [基本信息.新版本地址, 基本信息.更新说明]
-            }
-        ).encode())
+    if message_queue[0]['version'] != 10.2:  # 用【version】存储版本号
+        print(f"尝试登录的用户（{connection.getpeername()}）的版本过低。")
+        send(connection, event='VersionNotMatch', target=random.random())
         # 用【target】存储新版本地址
         if message_queue[1:]:
             for message in message_queue[1:]:
                 deal(message, connection)
     else:
         print(f"尝试登录的用户（{connection.getpeername()}）的版本正确。")
-        connection.send(json.dumps(
-            {
-                "event": "VersionMatch",
-                "source": None,
-                "card": None,
-                "amount": None,
-                "target": None
-            }
-        ).encode())
+        send(connection, event='VersionMatch')
 
     while True:
         message_queue = receive_message(connection)
@@ -95,7 +80,7 @@ def user_thread(connection):
 
 def deal(message, connection):
     # 它只能处理单条message
-    print(f"来自 {connection.getpeername()} 的message：{message}")
+    print(f"{connection.getpeername()} ：{message}")
     if message['行为'] == '登录':
         # 检查是否重名
         for target in 玩家控制.player_list:
@@ -107,9 +92,8 @@ def deal(message, connection):
                         '行为': '拒绝登录：重名',
                     }
                 ).encode())
-                return
 
-        # 以上两个都过了，那么这个玩家应该没问题（还没有写反攻击机制），先加入列表
+        # 以上两个都过了，那么这个玩家应该没问题，先加入列表
         玩家控制.player_list.append(玩家(用户名=message['用户'], connection=connection))
 
         # 然后发送登录成功的message（因为这样方便一些）
@@ -153,7 +137,7 @@ def deal(message, connection):
 class Server:
     def start(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("127.0.0.1", 8888))
+        s.bind(("127.0.0.1", 12345))
         s.listen(5)
         while True:
             connection, address = s.accept()
