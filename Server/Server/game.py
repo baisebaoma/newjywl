@@ -3,35 +3,13 @@ import threading
 import time
 import json
 
+# self
+from Event.Event import Event
+from Event.EventListener import *
+from Event.EventDealer import EventDealer
 
-class Queue:
-    """
-    提供一堆函数:
-    is_empty: 若是空 返回 alse 否则返回 True
-    print: 打印当前队列
-    push: 向末尾添加项
-    pop: 从最前提取一个项，如果空则返回 False
-    """
-    def __init__(self):
-        self.__queue = list()
-
-    def is_empty(self):
-        if self.__queue:
-            return False
-        else:
-            return True
-
-    def print(self):
-        print(self.__queue)
-
-    def push(self, T):
-        self.__queue.append(T)
-
-    def pop(self):
-        if self.is_empty():
-            return False
-        else:
-            return self.__queue.pop(0)
+from Game.Champion import Champion
+from Game.Card import Card
 
 
 class Player:
@@ -44,6 +22,7 @@ class Player:
         self.champion = None
 
     def turn(self):
+        '''
         # 回合开始（亮英雄）
         ED.event_queue.push(Event.Turn.Start(source=self))
         # 获取阶段（有的英雄可以在这里使用技能）
@@ -60,318 +39,8 @@ class Player:
 
         # 回合结束（此时进行判定）
         ED.event_queue.push(Event.Turn.End(source=self))
-
-
-class Event:
-    class __Event:
-        def cancel(self):
-            def cancel():
-                print("这个事件已被取消")
-
-            self.do = cancel
-
-    class GetChampion(__Event):
-        def __init__(self, player, champion):
-            # 输入：玩家 要拿取的卡牌数量
-            self.player = player
-            self.champion = champion
-
-        def do(self):
-            self.player.champion = self.champion
-
-        def send(self, target="broadcast"):
-            if target == "broadcast":
-                return {
-                    "event": "GetChampion",
-                    "source": self.player.ID,
-                    "card": None,
-                    "amount": None,
-                    "target": self.champion.name
-                }
-            # 最好在发送的时候也包装一下？
-            elif target == "private":
-                return {
-                    "event": "GetChampion",
-                    "source": self.player.ID,
-                    "card": None,
-                    "amount": None,
-                    "target": self.champion.name
-                }
-
-    class GetCard(__Event):
-        card_got = None
-
-        def __init__(self, player, amount):
-            # 输入：玩家 要拿取的卡牌数量
-            self.player = player
-            self.amount = amount
-
-        def do(self):
-            print(f"{self.player.ID} 拿了 {self.amount} 张牌！")
-
-        def send(self, target="broadcast"):
-            if target == "broadcast":
-                return {
-                    "event": "GetCard",
-                    "source": self.player.ID,
-                    "card": None,
-                    "amount": self.amount,
-                    "target": None
-                }
-            # 最好在发送的时候也包装一下？
-            elif target == "private":
-                return {
-                    "event": "GetCard",
-                    "source": self.player.ID,
-                    "card": self.card_got,
-                    "amount": self.amount,
-                    "target": None
-                }
-
-    class TransferHiddenCard(__Event):
-        def __init__(self, player1, player2, card):
-            # 输入：玩家1 玩家2 卡牌
-            self.player1 = player1
-            self.player2 = player2
-            self.card = card
-
-        def do(self):
-            self.player1.hidden_cards.remove(self.card)
-            self.player2.hidden_cards.append(self.card)
-
-        def send(self, target="broadcast"):
-            if target == "broadcast":
-                return {
-                    "event": "TransferHiddenCard",
-                    "source": self.player1.ID,
-                    "card": None,
-                    "amount": 1,
-                    "target": self.player2.ID
-                }
-            elif target == "private":
-                return {
-                    "event": "TransferHiddenCard",
-                    "source": self.player1.ID,
-                    "card": self.card.name,
-                    "amount": 1,
-                    "target": self.player2.ID
-                }
-
-    class LostHiddenCard(__Event):
-        def __init__(self, player, card):
-            # is card tuple?
-            # 输入：玩家 卡牌
-            self.player = player
-            self.card = card
-
-        def do(self):
-            self.player.lost_card(self.card)
-
-        def send(self, target="broadcast"):
-            # 虽然 target 没有用 但是还是放在这里防止报错
-            # 不用区分
-            return {
-                "event": "LostHiddenCard",
-                "source": self.player.ID,
-                "card": self.card.name,
-                "amount": None,
-                "target": None
-            }
-
-    class TransferShownCard(__Event):
-        def __init__(self, player1, player2, card):
-            # is card tuple?
-            # no because 1 card 1 time
-            # 输入：玩家1 玩家2 卡牌
-            self.player1 = player1
-            self.player2 = player2
-            self.card = card
-
-        def do(self):
-            self.player1.shown_cards.remove(self.card)
-            self.player2.shown_cards.append(self.card)
-
-        def send(self, target="broadcast"):
-            # 虽然 target 没有用 但是还是放在这里防止报错
-            # 不用区分
-            return {
-                "event": "TransferShownCard",
-                "source": self.player1.ID,
-                "card": self.card.name,
-                "amount": None,
-                "target": self.player2.ID
-            }
-
-    class LostShownCard(__Event):
-        def __init__(self, player, card):
-            # 输入：玩家 卡牌
-            self.player = player
-            self.card = card
-
-        def do(self):
-            self.player.shown_cards.remove(self.card)
-
-        def send(self, target="broadcast"):
-            # 虽然 target 没有用 但是还是放在这里防止报错
-            # 不用区分
-            return {
-                "event": "LostShownCard",
-                "source": self.player.ID,
-                "card": self.card.name,
-                "amount": None,
-                "target": None
-            }
-
-    class GetGold(__Event):
-        # 注意：包括负数
-        def __init__(self, player, amount):
-            # 输入：玩家 数量
-            self.player = player
-            self.amount = amount
-
-        def do(self):
-            self.player.gold += self.amount
-
-        def send(self, target="broadcast"):
-            # 虽然 target 没有用 但是还是放在这里防止报错
-            # 不用区分
-            return {
-                "event": "GetGold",
-                "source": self.player.ID,
-                "card": None,
-                "amount": self.player.gold,  # 注意：直接同步数字，防止意外（或者客户端开挂）
-                "target": None
-            }
-
-    class TransferGold(__Event):
-        def __init__(self, player1, player2, amount):
-            # 输入：玩家 数量
-            self.player1 = player1
-            self.player2 = player2
-            self.amount = amount
-
-        def do(self):
-            self.player1.gold -= self.amount
-            self.player2.gold += self.amount
-
-        def send(self, target="broadcast"):
-            # 虽然 target 没有用 但是还是放在这里防止报错
-            # 不用区分
-            return {
-                "event": "TransferGold",
-                "source": self.player1.ID,  # 注意：source 是被转移者，target 是获得者
-                "card": None,
-                "amount": self.amount,
-                "target": self.player2.ID
-            }
-
-    class Skill(__Event):
-        class woyunla:
-            pass
-
-    class Round:
-        class ChooseChar:
-            pass
-
-        class Start:
-            pass
-
-        class End:
-            pass
-
-    class Turn:
-        class Start:
-            pass
-
-        class End:
-            pass
-
-        class unknown:
-            pass
-
-
-class EventListener:
-    pass
-
-
-class JinZhiJiaQianListener(EventListener):
-    interest = (Event.GetGold, )
-
-    def activate(self, event):
-        if "禁止加钱" in event.player.shown_cards:
-            print(f'{event.player.ID} 装备了 "禁止加钱"，无法加钱！')
-            event.cancel()
-        return event
-            # event.cancel()
-
-
-class KilledListener(EventListener):
-    interest = (Event.Turn.Start, )
-
-    def activate(self, event):
-        if event.player.killed:
-            print(f'{event.player.ID} 已经被杀，无法进行下一个回合！')
-            event.cancel()
-        return event
-            # event.cancel()
-
-
-class EventDealer:
-
-    def __init__(self, game, network=""):
-        self.game = game  # 将？？传进来
-        self.network = network
-        self.event_queue = Queue()
-        self.event_listeners = list()
-
-    def ask(self, event):
-        for event_listener in self.event_listeners:
-            if event.__class__ in event_listener.interest:
-                event = event_listener.activate(event)
-            return event
-
-    def deal(self):
-        event = self.event_queue.pop()
-        if event is not False:  # 因为 event 可能是 Event 也可能是 Bool，所以不能写 if not event
-            print(f'正在处理事件 {event.send()}')
-            event = self.ask(event)
-            event.do()
-            # self.game.broadcast(event.send())  # 暂时是这样
-            # print(event.send())
-        else:
-            print("没有事件")
-
-    def start(self):
-        thread = threading.Thread(target=self.__thread, args=(), daemon=False)
-        thread.start()
-
-    def __thread(self):
-        while not self.game.end:
-            self.deal()
-            time.sleep(1)
-
-
-class Champion:
-    class __Champion:
+        '''
         pass
-
-    class XJB(__Champion):
-        name = '熊俊博'
-
-        def Skill(self, ):
-            pass
-
-    class ZXX(__Champion):
-        name = '熊俊博'
-
-        def Skill(self, ):
-            pass
-
-    class PZK(__Champion):
-        name = '熊俊博'
-
-        def Skill(self, ):
-            pass
 
 
 class GameLogic:
@@ -381,7 +50,8 @@ class GameLogic:
     def __init__(self):
         self.cdl = list()
         self.players = list()
-        self.champion_pool = [Champion.XJB(), Champion.PZK(), Champion.ZXX()]
+        self.champion_pool = [Champion.Assassin(), Champion.Thief(), Champion.Magician(), Champion.Emperor,
+                              Champion.Bishop, Champion.Businessman, Champion.Architect, Champion.Warlord]
         self.ED = None
 
     def round(self):
@@ -390,13 +60,30 @@ class GameLogic:
         self.ED.event_queue.push(Event.Round.End)
 
     def start(self):
-        print("GameLogic Started")
-        self.cdl = ["禁止加钱", "禁止套娃", "禁止摸牌", "无尽之刃"]
+        print("游戏逻辑开始了！")
+        self.cdl = list()
+
+        # init
+        random.shuffle(self.champion_pool)
         for player in self.players:
             self.ED.event_queue.push(Event.GetChampion(player=player, champion=self.champion_pool.pop(0)))
             self.ED.event_queue.push(Event.GetCard(player=player, amount=4))
             self.ED.event_queue.push(Event.GetGold(player=player, amount=2))
 
+        time.sleep(3)
+
+        # shuffle players by champion
+        players_in_order = [None] * 8
+        for player in self.players:
+            players_in_order[player.champion.order] = player
+        for _ in range(players_in_order.count(None)):
+            players_in_order.remove(None)
+        
+        for player in players_in_order:
+            self.ED.event_queue.push(Event.Turn.Start(player=player))
+
+        self.ED.event_queue.push(Event.LostShownCard(player=xjb, card=xjb.shown_cards[0]))
+        # end
 
 
 class Game:
@@ -413,10 +100,14 @@ class Game:
 
 if __name__ == "__main__":
     g = Game()
+
     xjb = Player("xjb")
-    xjb.shown_cards.append("禁止加钱")
+    xjb.shown_cards.append(Card.GoldMaker())
+    pzk = Player("pzk")
+    zxx = Player("zxx")
+
     g.GL.players.append(xjb)
-    g.ED.event_queue.push(Event.GetGold(player=xjb, amount=2))
-    g.ED.event_listeners.append(JinZhiJiaQianListener())
-    g.ED.event_listeners.append(KilledListener)
+    g.GL.players.append(pzk)
+    g.GL.players.append(zxx)
+
     g.start()
