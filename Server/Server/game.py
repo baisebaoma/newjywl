@@ -50,8 +50,8 @@ class GameLogic:
     def __init__(self):
         self.cdl = list()
         self.players = list()
-        self.champion_pool = [Champion.Assassin(), Champion.Thief(), Champion.Magician(), Champion.Emperor,
-                              Champion.Bishop, Champion.Businessman, Champion.Architect, Champion.Warlord]
+        self.champion_pool = [Champion.Assassin(), Champion.Thief(), Champion.Magician(), Champion.Emperor(),
+                              Champion.Bishop(), Champion.Businessman(), Champion.Architect(), Champion.Warlord()]
         self.ED = None
 
     def round(self):
@@ -78,11 +78,11 @@ class GameLogic:
             players_in_order[player.champion.order] = player
         for _ in range(players_in_order.count(None)):
             players_in_order.remove(None)
-        
+
         for player in players_in_order:
             self.ED.event_queue.push(Event.Turn.Start(player=player))
 
-        self.ED.event_queue.push(Event.LostShownCard(player=xjb, card=xjb.shown_cards[0]))
+        # self.ED.event_queue.push(Event.LostShownCard(player=xjb, card=xjb.shown_cards[0]))
         # end
 
 

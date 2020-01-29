@@ -13,8 +13,8 @@ class EventListener:
 
 
 class GoldMakerListener(EventListener):
-    interest = (Event.GetGold, Event.GetCard,
-                Event.Turn.Start, Event.LostShownCard)
+    interest = ((Event.GetGold, Event.GetCard),
+                (Event.Turn.Start, Event.LostShownCard))
 
     __count = {
 
@@ -30,7 +30,7 @@ class GoldMakerListener(EventListener):
                     else:
                         self.__count[event.player.ID] = event.amount
                     event.amount *= 2
-                if type(event) == Event.GetCard:
+                elif type(event) == Event.GetCard:
                     print(f'{event.player.ID} 拥有 金币制造厂，不能获得牌！')
                     event.cancel()
         return event
@@ -39,6 +39,8 @@ class GoldMakerListener(EventListener):
     def activate_after(self, event):
         if type(event) == Event.Turn.Start:
             if type(event.player.champion) == Champion.Businessman:
+                # 调试用 if event.player.ID == "xjb":
+                # print("Nice!")
                 for card in event.player.shown_cards:
                     if type(card) == Card.GoldMaker:
                         event.player.gold += 1

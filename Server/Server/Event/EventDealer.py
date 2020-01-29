@@ -20,13 +20,13 @@ class EventDealer:
 
     def ask_before(self, event):
         for event_listener in self.event_listeners:
-            if event.__class__ in event_listener.interest:
+            if event.__class__ in event_listener.interest[0]:
                 event = event_listener.activate_before(event)
             return event
 
     def ask_after(self, event):
         for event_listener in self.event_listeners:
-            if event.__class__ in event_listener.interest:
+            if event.__class__ in event_listener.interest[1]:
                 event = event_listener.activate_after(event)
             return event
 
