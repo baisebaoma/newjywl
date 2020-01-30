@@ -158,7 +158,6 @@ class Server:
         while True:
             connection, address = s.accept()
             print('收到一个新connection', connection.getpeername(), connection.fileno())
-            # 第一步检查版本号
             t = threading.Thread(target=user_thread, args=(connection,), daemon=True)
             t.start()
 

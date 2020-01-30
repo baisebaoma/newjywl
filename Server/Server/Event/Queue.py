@@ -4,6 +4,7 @@ class Queue:
     提供一堆函数:
     is_empty: 若是空 返回 alse 否则返回 True
     print: 打印当前队列
+    head: 向开头添加项
     push: 向末尾添加项
     pop: 从最前提取一个项，如果空则返回 False
     """
@@ -21,6 +22,9 @@ class Queue:
 
     def push(self, T):
         self.__queue.append(T)
+
+    def head(self, T):
+        self.__queue.insert(0, T)
 
     def pop(self):
         if self.is_empty():

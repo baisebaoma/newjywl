@@ -12,6 +12,40 @@ class EventListener:
     pass
 
 
+# GameLogicListeners
+
+
+class KilledListener(EventListener):
+    interest = ((Event.Turn.Start,),
+                ())
+
+    def activate_before(self, event):
+        if event.player.killed:
+            print(f'{event.player.ID} 已经被杀，无法进行下一个回合！')
+            event.cancel()
+        return event
+        # event.cancel()
+
+    def activate_after(self, event):
+        pass
+
+
+class EmperorListener(EventListener):
+    interest = ((),
+                (Event.Turn.ShowChamp,))
+
+    def activate_before(self, event):
+        pass
+
+    def activate_after(self, event):
+        if type(event.player.champion) == Champion.Emperor:
+            print(f'{event.player.ID} 是国王，获得皇冠，下一轮优先选择英雄！')
+        return event
+        # event.cancel()
+
+# SpecialCardListeners
+
+
 class GoldMakerListener(EventListener):
     interest = ((Event.GetGold, Event.GetCard),
                 (Event.Turn.Start, Event.LostShownCard))
@@ -57,14 +91,4 @@ class GoldMakerListener(EventListener):
                 print(f"{event.player.ID} 的 金币制造厂 被拆了！他将为此损失 {self.__count[event.player.ID]} 金！")
                 return event
 
-
-class KilledListener(EventListener):
-    interest = (Event.Turn.Start, )
-
-    def activate(self, event):
-        if event.player.killed:
-            print(f'{event.player.ID} 已经被杀，无法进行下一个回合！')
-            event.cancel()
-        return event
-            # event.cancel()
 
